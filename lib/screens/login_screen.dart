@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'inventory_screen.dart';
+import 'owner_dashboard_screen.dart';
 
 class AppColors {
   static const primary = Color(0xFF1B5E4F);
@@ -20,14 +22,21 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  String _selectedRole = 'encargado';
 
   void _handleLogin() {
     setState(() => _isLoading = true);
     Future.delayed(const Duration(seconds: 1), () {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login simulado — falta conectar backend')),
-      );
+      if (_selectedRole == 'dueño') {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const OwnerDashboardScreen()),
+        );
+      } else {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const InventoryScreen()),
+        );
+      }
     });
   }
 
@@ -74,6 +83,66 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(fontSize: 14, color: Colors.black54),
                   ),
                   const SizedBox(height: 40),
+                                    Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _selectedRole = 'encargado'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: _selectedRole == 'encargado'
+                                    ? AppColors.primary
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Encargado',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: _selectedRole == 'encargado'
+                                      ? Colors.white
+                                      : Colors.black54,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _selectedRole = 'dueño'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: _selectedRole == 'dueño'
+                                    ? AppColors.primary
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Dueño',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: _selectedRole == 'dueño'
+                                      ? Colors.white
+                                      : Colors.black54,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   TextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
