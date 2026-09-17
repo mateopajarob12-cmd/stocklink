@@ -33,6 +33,19 @@ app.get('/productos', (req, res) => {
   });
 });
 
+// Traer solo los productos de un negocio específico
+app.get('/negocios/:id/productos', (req, res) => {
+  const negocioId = req.params.id;
+
+  db.query('SELECT * FROM productos WHERE negocio_id = ?', [negocioId], (err, results) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Error al consultar productos del negocio' });
+    }
+    res.json(results);
+  });
+});
+
 // Agregar un producto nuevo
 app.post('/productos', (req, res) => {
   const { negocio_id, nombre, categoria, stock, stock_minimo, precio } = req.body;
