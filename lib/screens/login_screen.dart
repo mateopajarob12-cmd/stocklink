@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-
 import '../theme.dart';
 import 'admin/admin_shell.dart';
 import 'owner/owner_shell.dart';
 import 'forgot_password_screen.dart';
+import 'services/api_service.dart'; // <-- IMPORTANTE: Importar la API
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,16 +19,35 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String _selectedRole = 'encargado';
 
-  void _handleLogin() {
+  void _handleLogin() async {
     setState(() => _isLoading = true);
-    Future.delayed(const Duration(seconds: 1), () {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
+    
+    // Toma lo que escribas en los campos
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    // Llamamos a la API de Python
+    final api = ApiService(); 
+    final exito = await api.login(email, password);
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (exito) {
+      // Si el login es correcto, navega según el rol
       final route = _selectedRole == 'dueño'
           ? MaterialPageRoute(builder: (_) => const OwnerShell())
           : MaterialPageRoute(builder: (_) => const AdminShell());
       Navigator.of(context).push(route);
-    });
+    } else {
+      // Si la contraseña está mal (como la "a"), muestra este error
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Correo o contraseña incorrectos. Usa 123'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -42,7 +61,6 @@ class _LoginScreenState extends State<LoginScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 400),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Container(
@@ -53,11 +71,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(18),
                     ),
-                    child: const Icon(
-                      Icons.inventory_2_rounded,
-                      color: Colors.white,
-                      size: 36,
-                    ),
+                    child: const Icon(Icons.inventory_2_rounded,
+                        color: Colors.white, size: 36),
                   ),
                   const SizedBox(height: 20),
                   const Text(
@@ -87,8 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         Expanded(
                           child: GestureDetector(
-                            onTap: () =>
-                                setState(() => _selectedRole = 'encargado'),
+                            onTap: () => setState(() => _selectedRole = 'encargado'),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
@@ -112,8 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         Expanded(
                           child: GestureDetector(
-                            onTap: () =>
-                                setState(() => _selectedRole = 'dueño'),
+                            onTap: () => setState(() => _selectedRole = 'dueño'),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
@@ -161,14 +174,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'Contraseña',
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                        ),
+                        icon: Icon(_obscurePassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined),
                         onPressed: () => setState(
-                          () => _obscurePassword = !_obscurePassword,
-                        ),
+                            () => _obscurePassword = !_obscurePassword),
                       ),
                       filled: true,
                       fillColor: Colors.white,
@@ -185,14 +195,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => const ForgotPasswordScreen(),
-                          ),
+                              builder: (context) => const ForgotPasswordScreen()),
                         );
                       },
-                      child: const Text(
-                        '¿Olvidaste tu contraseña?',
-                        style: TextStyle(color: AppColors.primary),
-                      ),
+                      child: const Text('¿Olvidaste tu contraseña?',
+                          style: TextStyle(color: AppColors.primary)),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -212,17 +219,11 @@ class _LoginScreenState extends State<LoginScreen> {
                               height: 22,
                               width: 22,
                               child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2.5,
-                              ),
+                                  color: Colors.white, strokeWidth: 2.5),
                             )
-                          : const Text(
-                              'Ingresar',
+                          : const Text('Ingresar',
                               style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                                  fontSize: 16, fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ],
