@@ -312,40 +312,31 @@ class _PosTabState extends State<_PosTab> {
     });
   }
 
-  void _confirmSale() async {
+  Future<void> _confirmSale() async {
     if (_cart.isEmpty) return;
     final state = AppState.instance;
-    
-    // Calculamos el total
-    double total = 0;
-    for (final e in _cart.entries) {
-      final p = state.findByCode(e.key)!;
-      total += p.price * e.value;
-    }
-
     try {
-      // 1. Enviamos la venta a Python (MySQL)
-      final api = ApiService();
-      await api.registerSale(total, 'Encargado de Turno');
-
-      // 2. Descontamos el stock local en Flutter
       final items = _cart.entries
-          .map((e) => SaleItem(product: state.findByCode(e.key)!, quantity: e.value))
+          .map(
+            (e) =>
+                SaleItem(product: state.findByCode(e.key)!, quantity: e.value),
+          )
           .toList();
-      
-      state.registerSale(
+      final sale = await state.registrarVentaApi(
         items: items,
         businessId: _currentBusinessId,
-        encargado: 'Encargado de Turno',
+        encargado: 'Encargado Demo',
       );
-
+      if (!mounted) return;
       setState(() {
         _cart.clear();
         _error = null;
-        _info = 'Venta guardada en MySQL · Total \$${total.toStringAsFixed(0)}';
+        _info =
+            'Venta ${sale.id} registrada · Total \$${sale.total.toStringAsFixed(0)}';
       });
     } catch (e) {
-      setState(() => _error = 'Error al guardar en la base de datos: $e');
+      if (!mounted) return;
+      setState(() => _error = e.toString());
     }
   }
 

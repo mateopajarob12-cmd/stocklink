@@ -37,6 +37,18 @@ class AppState extends ChangeNotifier {
     await cargarProductosDesdeApi();
   }
 
+  Future<Sale> registrarVentaApi({
+    required List<SaleItem> items,
+    required String businessId,
+    required String encargado,
+  }) async {
+    await _api.registerSale(items); // la API valida y descuenta el stock
+    final sale = registerSale(
+        items: items, businessId: businessId, encargado: encargado);
+    await cargarProductosDesdeApi(); // refresca el stock real
+    return sale;
+  }
+
   // ── Negocio activo (para el encargado web) ──
   String currentBusinessId = 'b1';
 

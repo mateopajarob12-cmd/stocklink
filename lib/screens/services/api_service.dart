@@ -75,14 +75,22 @@ class ApiService {
     }
   }
 
-  Future<void> registerSale(double total, String encargado) async {
+  Future<void> registerSale(List<SaleItem> items) async {
     final res = await http.post(
       Uri.parse('$baseUrl/sales'),
       headers: _headers,
-      body: jsonEncode({'total': total, 'encargado': encargado}),
+      body: jsonEncode({
+        'items': items
+            .map((i) => {'code': i.product.code, 'quantity': i.quantity})
+            .toList(),
+      }),
     );
     if (res.statusCode != 200) {
-      throw Exception('Error al registrar la venta');
+      String msg = 'Error al registrar la venta';
+      try {
+        msg = jsonDecode(res.body)['detail'].toString();
+      } catch (_) {}
+      throw Exception(msg);
     }
   }
 }
