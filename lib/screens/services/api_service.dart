@@ -3,10 +3,18 @@ import 'package:http/http.dart' as http;
 import '../../models.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:8000/api';
-  static String? _token; // <--- ¡EL TRUCO ESTÁ AQUÍ! (static para que sea global)
+  // URL de la nube en Render
+  static const String baseUrl = 'https://stocklink-api-x46s.onrender.com/api';
+  
+  static String? _token;
 
-  Future<bool> login(String username, String password) async {
+  // Función para limpiar el token al cerrar sesión
+  static void cerrarSesion() {
+    _token = null;
+  }
+
+  // Login devuelve el ROL (String) o nulo si falla
+  Future<String?> login(String username, String password) async {
     final res = await http.post(
       Uri.parse('$baseUrl/login'),
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -17,10 +25,10 @@ class ApiService {
       final data = jsonDecode(res.body);
       _token = data['access_token'];
       print("✅ TOKEN GUARDADO EN FLUTTER: $_token");
-      return true;
+      return data['rol']; // Devuelve 'propietario' o 'encargado'
     }
     print("❌ LOGIN FALLÓ: ${res.statusCode}");
-    return false;
+    return null; // Si falla
   }
 
   Map<String, String> get _headers => {
@@ -47,6 +55,24 @@ class ApiService {
       )).toList();
     }
     throw Exception('Error al cargar productos o token inválido: ${res.statusCode}');
+  }
+
+  Future<void> createProduct(Product p) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/products'),
+      headers: _headers,
+      body: jsonEncode({
+        'code': p.code,
+        'name': p.name,
+        'category': p.category,
+        'stock': p.stock,
+        'minStock': p.minStock,
+        'price': p.price,
+      }),
+    );
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      throw Exception('No se pudo guardar el producto (${res.statusCode})');
+    }
   }
 
   Future<void> registerSale(double total, String encargado) async {

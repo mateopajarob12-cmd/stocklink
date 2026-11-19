@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../theme.dart';
 import '../../app_state.dart';
 import '../../models.dart';
+import '../services/api_service.dart'; 
 
 class OwnerShell extends StatefulWidget {
   const OwnerShell({super.key});
@@ -131,9 +132,9 @@ class _HomeTabState extends State<_HomeTab> {
       slivers: [
         SliverToBoxAdapter(
           child: _Header(
-            title: 'Hola, Dueño 👋',
+            title: 'Panel de Propietario', // <--- CORREGIDO
             subtitle: _businessFilter == null
-                ? 'Consolidado de todas tus sucursales'
+                ? 'Consolidado general de sucursales'
                 : s.businesses.firstWhere((b) => b.id == _businessFilter).name,
             businesses: s.businesses,
             selectedId: _businessFilter,
@@ -529,7 +530,7 @@ class _TeamTab extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         const _SectionTitle(
-          title: 'Mis encargados',
+          title: 'Gestión de Encargados',
           subtitle: 'Actividad y monitoreo en tiempo real',
         ),
         ...s.encargados.map((e) {
@@ -1050,9 +1051,13 @@ class _Header extends StatelessWidget {
                 ),
               ),
               IconButton(
+                tooltip: 'Cerrar Sesión',
                 icon: const Icon(Icons.logout, color: Colors.white),
-                onPressed: () =>
-                    Navigator.of(context).popUntil((r) => r.isFirst),
+                onPressed: () {
+                  // Cerramos sesión (limpia el token) y volvemos al inicio
+                  ApiService.cerrarSesion(); 
+                  Navigator.of(context).popUntil((r) => r.isFirst);
+                },
               ),
             ],
           ),

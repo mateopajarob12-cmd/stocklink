@@ -4,6 +4,7 @@ import '../../theme.dart';
 import '../../app_state.dart';
 import '../../models.dart';
 import '../product_form_screen.dart';
+import '../services/api_service.dart'; // <-- IMPORTANTE: Agregado
 
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key});
@@ -51,7 +52,11 @@ class _AdminShellState extends State<AdminShell>
           IconButton(
             tooltip: 'Cerrar sesión',
             icon: const Icon(Icons.logout),
-            onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst),
+            onPressed: () {
+              // Cerramos sesión y limpiamos el token
+              ApiService.cerrarSesion(); 
+              Navigator.of(context).popUntil((r) => r.isFirst);
+            },
           ),
         ],
         bottom: TabBar(
@@ -115,7 +120,19 @@ class _InventoryTabState extends State<_InventoryTab> {
                 final created = await Navigator.of(context).push<Product>(
                   MaterialPageRoute(builder: (_) => const ProductFormScreen()),
                 );
-                if (created != null) state.addProduct(created);
+                if (created != null) {
+                  try {
+                    await state.crearProducto(created);
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('No se pudo guardar: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
               },
               icon: const Icon(Icons.add_box_rounded, color: AppColors.primary),
               label: const Text(
@@ -295,29 +312,40 @@ class _PosTabState extends State<_PosTab> {
     });
   }
 
-  void _confirmSale() {
+  void _confirmSale() async {
     if (_cart.isEmpty) return;
     final state = AppState.instance;
+    
+    // Calculamos el total
+    double total = 0;
+    for (final e in _cart.entries) {
+      final p = state.findByCode(e.key)!;
+      total += p.price * e.value;
+    }
+
     try {
+      // 1. Enviamos la venta a Python (MySQL)
+      final api = ApiService();
+      await api.registerSale(total, 'Encargado de Turno');
+
+      // 2. Descontamos el stock local en Flutter
       final items = _cart.entries
-          .map(
-            (e) =>
-                SaleItem(product: state.findByCode(e.key)!, quantity: e.value),
-          )
+          .map((e) => SaleItem(product: state.findByCode(e.key)!, quantity: e.value))
           .toList();
-      final sale = state.registerSale(
+      
+      state.registerSale(
         items: items,
         businessId: _currentBusinessId,
-        encargado: 'Encargado Demo',
+        encargado: 'Encargado de Turno',
       );
+
       setState(() {
         _cart.clear();
         _error = null;
-        _info =
-            'Venta ${sale.id} registrada · Total \$${sale.total.toStringAsFixed(0)}';
+        _info = 'Venta guardada en MySQL · Total \$${total.toStringAsFixed(0)}';
       });
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = 'Error al guardar en la base de datos: $e');
     }
   }
 

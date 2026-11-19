@@ -30,6 +30,13 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> crearProducto(Product p) async {
+    await _api.createProduct(p);
+    _log(currentBusinessId, 'Encargado Demo',
+        'Agregó producto: ${p.name}', AuditSeverity.normal);
+    await cargarProductosDesdeApi();
+  }
+
   // ── Negocio activo (para el encargado web) ──
   String currentBusinessId = 'b1';
 

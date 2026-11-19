@@ -3,7 +3,7 @@ import '../theme.dart';
 import 'admin/admin_shell.dart';
 import 'owner/owner_shell.dart';
 import 'forgot_password_screen.dart';
-import 'services/api_service.dart'; // <-- IMPORTANTE: Importar la API
+import 'services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,37 +17,58 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
-  String _selectedRole = 'encargado';
+  String _selectedRole = 'encargado'; // 'encargado' o 'propietario'
 
   void _handleLogin() async {
     setState(() => _isLoading = true);
     
-    // Toma lo que escribas en los campos
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    // Llamamos a la API de Python
     final api = ApiService(); 
-    final exito = await api.login(email, password);
+    // La API ahora devuelve el rol (String) o null
+    final rolReal = await api.login(email, password);
 
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (exito) {
-      // Si el login es correcto, navega según el rol
-      final route = _selectedRole == 'dueño'
-          ? MaterialPageRoute(builder: (_) => const OwnerShell())
-          : MaterialPageRoute(builder: (_) => const AdminShell());
-      Navigator.of(context).push(route);
-    } else {
-      // Si la contraseña está mal (como la "a"), muestra este error
+    // 1. Si el correo o contraseña son incorrectos
+    if (rolReal == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Correo o contraseña incorrectos. Usa 123'),
+          content: Text('Correo o contraseña incorrectos'),
           backgroundColor: Colors.red,
         ),
       );
+      return;
     }
+
+    // 2. VALIDACIÓN DE SEGURIDAD: Bloqueamos cruces de roles
+    if (_selectedRole == 'propietario' && rolReal != 'propietario') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Acceso denegado: Este correo es de Encargado'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedRole == 'encargado' && rolReal != 'encargado') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Acceso denegado: Este correo es de Propietario'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // 3. Si pasó las validaciones, lo enviamos a su vista
+    final route = rolReal == 'propietario'
+        ? MaterialPageRoute(builder: (_) => const OwnerShell())
+        : MaterialPageRoute(builder: (_) => const AdminShell());
+    Navigator.of(context).push(route);
   }
 
   @override
@@ -112,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                'Usuario',
+                                'Encargado',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: _selectedRole == 'encargado'
@@ -126,20 +147,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         Expanded(
                           child: GestureDetector(
-                            onTap: () => setState(() => _selectedRole = 'dueño'),
+                            onTap: () => setState(() => _selectedRole = 'propietario'),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: _selectedRole == 'dueño'
+                                color: _selectedRole == 'propietario'
                                     ? AppColors.primary
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                'Administrador',
+                                'Propietario',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: _selectedRole == 'dueño'
+                                  color: _selectedRole == 'propietario'
                                       ? Colors.white
                                       : Colors.black54,
                                   fontWeight: FontWeight.w600,
